@@ -94,6 +94,7 @@
       <h2>Random Text-to-Speech Shouter</h2>
 
       <h3>Select Salsa Moves:</h3>
+      <button onclick="selectAllMoves()">Select All Moves</button>
       <div id="salsaListContainer"></div>
 
       <h3>Or enter a custom comma-separated list:</h3>
@@ -130,26 +131,16 @@
     let remainingTime = 0;
 
     const salsaMoves = [
-      "guapea",
-      "enchufla",
-      "dile que no",
-      //"dame",
-      //"dame dos",
-      "dame medio",
-      "cero (from medio)",
-      "ocho (from medio)",
-      //"directo",
-      "la prima",
-      "enchufla con cero",
-      "enchufla y quedarte con ella",
-      "la prima y la hermana",
-      "bastille",
-      "lola",
-      "pimienta",
-      "reverso juntos",
-      "ochenta y ocho",
-      "puenta",
-      "pelota"
+      "Cross Body Lead",
+      "Right Turn",
+      "Left Turn",
+      "Inside Turn",
+      "Outside Turn",
+      "Copa",
+      "Enchufla",
+      "Setenta",
+      "Vacilala",
+      "Sombrero"
     ];
 
     function populateVoices() {
@@ -175,6 +166,10 @@
         });
         container.appendChild(item);
       });
+    }
+
+    function selectAllMoves() {
+      document.querySelectorAll('#salsaListContainer div').forEach(item => item.classList.add('selected'));
     }
 
     function speak(text) {
