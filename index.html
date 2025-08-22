@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random TTS Shouter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background: #121212;
+      color: #e0e0e0;
+    }
+    .container {
+      display: flex;
+      max-width: 1200px;
+      margin: auto;
+      gap: 2rem;
+    }
+    .options, .display {
+      flex: 1;
+      padding: 1.5rem;
+      background: #1e1e1e;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    .options {
+      text-align: left;
+    }
+    .display {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    input, select, button, textarea {
+      margin: 0.5rem 0;
+      padding: 0.25rem 0.5rem;
+      width: 100%;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+    }
+    input, select, textarea {
+      background: #2b2b2b;
+      color: #e0e0e0;
+    }
+    button {
+      background: limegreen;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #32cd32;
+    }
+    #countdown {
+      font-size: 3rem;
+      font-weight: bold;
+      color: limegreen;
+      margin-bottom: 2rem;
+    }
+    #lastWord {
+      font-size: 4rem;
+      font-weight: bold;
+      color: #ffffff;
+      margin-bottom: 2rem;
+    }
+    #salsaListContainer {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #2b2b2b;
+      border-radius: 5px;
+      padding: 0.25rem;
+    }
+    #salsaListContainer div {
+      padding: 0.25rem 0;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    #salsaListContainer div:hover {
+      background: #2b2b2b;
+    }
+    #salsaListContainer div.selected {
+      background: limegreen;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="options">
+      <h2>Random Text-to-Speech Shouter</h2>
+
+      <h3>Select Salsa Moves:</h3>
+      <div id="salsaListContainer"></div>
+
+      <h3>Or enter a custom comma-separated list:</h3>
+      <input type="text" id="listInput" placeholder="e.g. apple, banana, cherry">
+
+      <label for="minInterval">Min Interval (seconds):</label>
+      <input type="number" id="minInterval" placeholder="e.g. 2" min="1">
+
+      <label for="maxInterval">Max Interval (seconds):</label>
+      <input type="number" id="maxInterval" placeholder="e.g. 5" min="1">
+
+      <label for="duration">Optional Duration (seconds, max 600):</label>
+      <input type="number" id="duration" placeholder="Leave empty for default (600)">
+
+      <label for="voiceSelect">Select Language/Voice:</label>
+      <select id="voiceSelect"></select>
+
+      <button onclick="startShoutingFromClickList()">Start Shouting Selected Moves</button>
+      <button onclick="startShouting()">Start Shouting Custom List</button>
+      <button onclick="stopShouting()">Stop Shouting</button>
+    </div>
+
+    <div class="display">
+      <div id="countdown"></div>
+      <div id="lastWord"></div>
+    </div>
+  </div>
+
+  <script>
+    let shoutTimeout;
+    let stopTimer;
+    let countdownTimer;
+    let voices = [];
+    let remainingTime = 0;
+
+    const salsaMoves = [
+      "Cross Body Lead",
+      "Right Turn",
+      "Left Turn",
+      "Inside Turn",
+      "Outside Turn",
+      "Copa",
+      "Enchufla",
+      "Setenta",
+      "Vacilala",
+      "Sombrero"
+    ];
+
+    function populateVoices() {
+      voices = speechSynthesis.getVoices();
+      const voiceSelect = document.getElementById("voiceSelect");
+      voiceSelect.innerHTML = "";
+      const desiredLangs = ["en", "es", "pt", "fr"];
+      voices.filter(v => desiredLangs.some(lang => v.lang.startsWith(lang))).forEach(voice => {
+        const option = document.createElement("option");
+        option.value = voice.name;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelect.appendChild(option);
+      });
+    }
+
+    function populateSalsaList() {
+      const container = document.getElementById("salsaListContainer");
+      salsaMoves.forEach(move => {
+        const item = document.createElement("div");
+        item.textContent = move;
+        item.addEventListener("click", () => {
+          item.classList.toggle("selected");
+        });
+        container.appendChild(item);
+      });
+    }
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      const selectedVoice = document.getElementById("voiceSelect").value;
+      const voice = voices.find(v => v.name === selectedVoice);
+      if (voice) utterance.voice = voice;
+      utterance.volume = 1;
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      speechSynthesis.speak(utterance);
+    }
+
+    function getRandomInterval(min, max) {
+      return Math.floor(Math.random() * (max - min + 1) + min) * 1000;
+    }
+
+    function updateCountdown() {
+      const countdownEl = document.getElementById("countdown");
+      if (remainingTime > 0) {
+        const mins = Math.floor(remainingTime / 60);
+        const secs = remainingTime % 60;
+        countdownEl.textContent = `Time left: ${mins}m ${secs}s`;
+        remainingTime--;
+      } else {
+        countdownEl.textContent = "";
+        clearInterval(countdownTimer);
+      }
+    }
+
+    function startShouting(customList) {
+      stopShouting();
+      const minInterval = parseInt(document.getElementById("minInterval").value, 10) || 2;
+      const maxInterval = parseInt(document.getElementById("maxInterval").value, 10) || 5;
+      let duration = parseInt(document.getElementById("duration").value, 10) || 600;
+      if (duration > 600) duration = 600;
+
+      const items = customList || document.getElementById("listInput").value.split(",").map(s => s.trim()).filter(Boolean);
+      if (!items.length) {
+        alert("Please provide a list of items.");
+        return;
+      }
+
+      function loop() {
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        document.getElementById("lastWord").textContent = randomItem;
+        speak(randomItem);
+        const interval = getRandomInterval(minInterval, maxInterval);
+        shoutTimeout = setTimeout(loop, interval);
+      }
+
+      loop();
+      remainingTime = duration;
+      updateCountdown();
+      countdownTimer = setInterval(updateCountdown, 1000);
+      stopTimer = setTimeout(stopShouting, duration * 1000);
+    }
+
+    function startShoutingFromClickList() {
+      const selectedItems = Array.from(document.querySelectorAll('#salsaListContainer .selected')).map(el => el.textContent);
+      if (!selectedItems.length) {
+        alert("Please select at least one Salsa move.");
+        return;
+      }
+      startShouting(selectedItems);
+    }
+
+    function stopShouting() {
+      clearTimeout(shoutTimeout);
+      clearTimeout(stopTimer);
+      clearInterval(countdownTimer);
+      remainingTime = 0;
+      document.getElementById("countdown").textContent = "";
+      document.getElementById("lastWord").textContent = "";
+      speechSynthesis.cancel();
+    }
+
+    speechSynthesis.onvoiceschanged = populateVoices;
+    populateVoices();
+    populateSalsaList();
+  </script>
+</body>
+</html>
