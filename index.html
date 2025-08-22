@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Random TTS Shouter</title>
+  <title>Salsa Shouter</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -100,13 +100,13 @@
       <h3>Or enter a custom comma-separated list:</h3>
       <input type="text" id="listInput" placeholder="e.g. apple, banana, cherry">
 
-      <label for="minInterval">Min Interval (seconds):</label>
+      <label for="minInterval">Min Shout Interval (seconds):</label>
       <input type="number" id="minInterval" placeholder="e.g. 2" min="1">
 
-      <label for="maxInterval">Max Interval (seconds):</label>
+      <label for="maxInterval">Max Shout Interval (seconds):</label>
       <input type="number" id="maxInterval" placeholder="e.g. 5" min="1">
 
-      <label for="duration">Optional Duration (seconds, max 600):</label>
+      <label for="duration">(Optional) Duration (seconds, max 600):</label>
       <input type="number" id="duration" placeholder="Leave empty for default (600)">
 
       <label for="voiceSelect">Select Language/Voice:</label>
@@ -157,7 +157,7 @@
       voices = speechSynthesis.getVoices();
       const voiceSelect = document.getElementById("voiceSelect");
       voiceSelect.innerHTML = "";
-      const desiredLangs = ["en", "es", "pt", "fr"];
+      const desiredLangs = ["en", "es"];
       voices.filter(v => desiredLangs.some(lang => v.lang.startsWith(lang))).forEach(voice => {
         const option = document.createElement("option");
         option.value = voice.name;
